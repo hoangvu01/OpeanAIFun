@@ -4,7 +4,8 @@ import numpy as np
 
 
 class CartpoleAgent:
-  def __init__(self, alpha, gamma, epsilon, bins, upper_bounds, lower_bounds, num_episodes, min_epsilon=0.05, graphics=True):
+  def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.5, bins=(12, 16, 2), 
+               upper_bounds=[0.4, 0.5], lower_bounds=[-0.4, -0.5], num_episodes=30, min_epsilon=0.05, graphics=True):
     self.alpha = alpha
     self.gamma = gamma
     self.epsilon = epsilon
@@ -54,7 +55,7 @@ class CartpoleAgent:
       moves = 1
       while not done:
         action = self.get_action(curr_state, moves)
-        next_obs, survived , done, _ = self.env.step(action)
+        next_obs, _, done, _ = self.env.step(action)
         next_state = self.discretise(next_obs)
         self.update_score(curr_state, next_state, action, - abs(next_obs[2]) * abs(next_obs[3]))
         
@@ -79,15 +80,12 @@ def test(agent : CartpoleAgent):
     test_results.append(moves)  
   return test_results
 
-def main():
-  agent = CartpoleAgent(0.1, 0.9, 0.5, (10, 16, 2), 
-                        [ 0.4,  0.5], 
-                        [-0.4, -0.5], 50, min_epsilon=0.1, graphics=True)
-  agent.train()
-  test_results = test(agent)
-  plt.plot(test_results)
-  plt.plot(agent.performance)
-  plt.show()
 
 if __name__ == "__main__":
-  main()
+  agent = CartpoleAgent() # Create an agent
+  agent.train() # Train agent
+  test_results = test(agent)
+  plt.plot(agent.performance)
+  plt.plot(test_results)
+  plt.show() 
+  
