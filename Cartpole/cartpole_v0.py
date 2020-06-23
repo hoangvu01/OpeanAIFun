@@ -18,22 +18,6 @@ class CartpoleAgent:
     self.min_epsilon = min_epsilon
     self.env = gym.make('CartPole-v0')
 
-  @staticmethod
-  def load_from_file():
-    with open(JSONFILE) as jsonfile:
-      qtable_dict_list = json.load(jsonfile)  
-  
-    for jdict in qtable_dict_list:
-      for _ in jdict.items():
-        qtable[tuple(jdict["key"])] = np.array(jdict["value"])  
-
-  @staticmethod
-  def write_to_file():    
-     with open(JSONFILE, "w+") as jsonfile:
-        json.dump([ { 'key' : list(k), 
-                      'value' : list(v) } for (k,v) in qtable.items()], 
-                jsonfile, indent=2)
- 
   def get_epsilon(self, moves):
     return min(self.min_epsilon, self.epsilon ** moves)
    
@@ -98,7 +82,7 @@ def test(agent : CartpoleAgent):
 def main():
   agent = CartpoleAgent(0.1, 0.9, 0.5, (10, 16, 2), 
                         [ 0.4,  0.5], 
-                        [-0.4, -0.5], 150, min_epsilon=0.1, graphics=True)
+                        [-0.4, -0.5], 50, min_epsilon=0.1, graphics=True)
   agent.train()
   test_results = test(agent)
   plt.plot(test_results)
