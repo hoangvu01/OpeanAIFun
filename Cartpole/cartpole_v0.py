@@ -1,96 +1,109 @@
-import gym, random
+import gym, random, math, json
 import matplotlib.pyplot as plt
 import numpy as np
-import json
-
-MAX_ACTIONS = 200
-NUM_EPISODES = 1000 
-
-ALPHA = 0.1
-GAMMA = 0.8
-EPSILON = 0.1 
-
-JSONFILE = "cartpole_res.txt"
-PERFFILE = "cartpole_data.txt"
-qtable = {}
-qtable_dict_list = []
-performance = []
-
-def load_from_file():
-  with open(JSONFILE) as jsonfile:
-    qtable_dict_list = json.load(jsonfile)  
-
-  for jdict in qtable_dict_list:
-    for _ in jdict.items():
-      qtable[tuple(jdict["key"])] = np.array(jdict["value"])  
-
-def write_to_file():    
-  with open(JSONFILE, "w+") as jsonfile:
-      json.dump([ { 'key' : list(k), 
-                    'value' : list(v) } for (k,v) in qtable.items()], 
-              jsonfile, indent=2)
-
-def evaluate_env(obs):
-  #TODO
-  return - np.array(map(abs, obs)).sum()
-
-def get_actions_space(state):
-  actions_space = np.zeros(2, dtype=np.float64)
-  # Create action space if not exists already
-  if random.uniform(0, 1) < EPSILON or (not state in qtable): 
-    # Exploration  
-    action = random.randint(0, 1)
-    qtable[state] = actions_space
-  else: 
-    #Exploitation 
-    actions_space = qtable[state] 
-    action = np.argmax(actions_space)
-  return action, actions_space     
-
-def get_state(obs):
-  #TODO: 
-  tilt_sign = (obs[2] > 0) ^ (obs[3] > 0)  
-  angular_v = 1 if abs(obs[3]) > 10 else 0 
-  return (round(abs(obs[2]), 1), angular_v, int(tilt_sign))
 
 
-def train():
-  env = gym.make('CartPole-v0')
+class CartpoleAgent:
+  def __init__(self, alpha, gamma, epsilon, bins, upper_bounds, lower_bounds, num_episodes, min_epsilon=0.05, graphics=True):
+    self.alpha = alpha
+    self.gamma = gamma
+    self.epsilon = epsilon
+    self.performance = []
+    self.upper_bounds = upper_bounds
+    self.lower_bounds = lower_bounds
+    self.num_episodes = num_episodes
+    self.bins = bins
+    self.qtable = np.zeros(bins, dtype=np.float64)
+    self.graphics = graphics
+    self.min_epsilon = min_epsilon
+    self.env = gym.make('CartPole-v0')
+
+  @staticmethod
+  def load_from_file():
+    with open(JSONFILE) as jsonfile:
+      qtable_dict_list = json.load(jsonfile)  
+  
+    for jdict in qtable_dict_list:
+      for _ in jdict.items():
+        qtable[tuple(jdict["key"])] = np.array(jdict["value"])  
+
+  @staticmethod
+  def write_to_file():    
+     with open(JSONFILE, "w+") as jsonfile:
+        json.dump([ { 'key' : list(k), 
+                      'value' : list(v) } for (k,v) in qtable.items()], 
+                jsonfile, indent=2)
  
-  for episode in range(NUM_EPISODES):
+  def get_epsilon(self, moves):
+    return min(self.min_epsilon, self.epsilon ** moves)
+   
+  def discretise(self, obs):
+    temp_obs = obs[2:]
+    new_obs = [max(min(temp_obs[i], self.upper_bounds[i]), self.lower_bounds[i]) for i in range(len(temp_obs))]
+    range_bounds = [self.upper_bounds[i] - self.lower_bounds[i] for i in range(len(self.lower_bounds))]
+    res = tuple([int(round((new_obs[i] - self.lower_bounds[i]) / range_bounds[i] 
+                 * (self.bins[i] - 1))) for i in range(len(new_obs))])
+    return res  
+  
+  def get_action(self, state, moves):
+    if (random.uniform(0, 1) < self.get_epsilon(moves)): 
+      action = self.env.action_space.sample()
+    else:
+      action = np.argmax(self.qtable[state])
+      print(self.qtable[state], action)
+    return action
+
+  def update_score(self, curr_state, next_state, action, reward):
+    next_max = np.max(self.qtable[next_state])
+    old_score = self.qtable[curr_state][action]
+    new_score = (1 - self.alpha) * old_score + self.alpha * (reward + self.gamma * next_max)
+    self.qtable[curr_state][action] = new_score
+  
+  def train(self):
+    for episode in range(self.num_episodes):
+      if (self.graphics):
+        self.env.render()
+      curr_obs = self.env.reset()
+      curr_state = self.discretise(curr_obs)
+      # Start game
+      done = False
+      moves = 1
+      while not done:
+        action = self.get_action(curr_state, moves)
+        next_obs, survived , done, _ = self.env.step(action)
+        next_state = self.discretise(next_obs)
+        self.update_score(curr_state, next_state, action, - abs(next_obs[2]) * abs(next_obs[3]))
+        
+        curr_obs = next_obs 
+        curr_state = next_state
+        moves += 1
+      self.performance.append(moves) 
+    self.env.close()  
+
+
+def test(agent : CartpoleAgent):
+  test_results = []
+  env = gym.make('CartPole-v0')
+  for t in range(100):
     obs = env.reset()
-    old_state = get_state(obs) 
-    # Start game
-    for t in range(MAX_ACTIONS):
-      env.render()
-      
-      # Get the next action given current state
-      action, old_actions_space = get_actions_space(old_state)  
-      old_score = old_actions_space[action] 
-      obs, reward, done, info = env.step(action)
-      
-      # Evaluate the state after action
-      new_state = get_state(obs) 
-      action, new_actions_space = get_actions_space(new_state)   
-      next_max = new_actions_space[action]   
-      
-      # Update score and prepare for the iteration
-      old_actions_space[action] = (1 - ALPHA) * old_score + ALPHA * ((-obs[2])+ GAMMA * next_max)
-      old_state = new_state
-      
-      if done or t == MAX_ACTIONS - 1:
-        performance.append(t)  
-        print("Done! Episode {} after {} steps \n".format(episode, t + 1))
-        break
-    if episode % 100 == 0:
-      write_to_file()
-  env.close()  
+    done = False
+    moves = 1
+    while not done:
+      action = agent.get_action(agent.discretise(obs), moves)
+      obs, _, done, _ = env.step(action)
+      moves += 1
+    test_results.append(moves)  
+  return test_results
 
 def main():
-  load_from_file()
-  train()
-  write_to_file()
-  plt.plot(performance)
+  agent = CartpoleAgent(0.1, 0.9, 0.5, (10, 16, 2), 
+                        [ 0.4,  0.5], 
+                        [-0.4, -0.5], 150, min_epsilon=0.1, graphics=True)
+  agent.train()
+  test_results = test(agent)
+  plt.plot(test_results)
+  plt.plot(agent.performance)
   plt.show()
 
-main()  
+if __name__ == "__main__":
+  main()
