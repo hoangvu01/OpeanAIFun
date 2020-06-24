@@ -20,5 +20,5 @@ def mountaincar_run():
   plt.plot(test_results)
 
 if __name__ == '__main__':
-  cartpole_run()
+  mountaincar_run()
   plt.show()

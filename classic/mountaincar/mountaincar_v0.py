@@ -17,20 +17,31 @@ class MountainCarAgent(GenericAgent):
 
   """ 
   def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.5, min_epsilon=0.05,              #Hyperparam
-               bins=(12, 16, 3), upper_bounds=[0.6, 0.07], lower_bounds=[-1.2, -0.07], #Discretisation
-               num_episodes=30, graphics=True):                                        #Training
+               bins=(16, 16, 3), upper_bounds=[0.6, 0.07], lower_bounds=[-1.2, -0.07], #Discretisation
+               num_episodes=200, graphics=True):                                        #Training
     GenericAgent.__init__(self, alpha, gamma, epsilon, min_epsilon, bins, 
                          upper_bounds, lower_bounds, num_episodes, graphics)
     self.env = gym.make('MountainCar-v0')
 
-  # Create agent from pre-defined config
   def create_agent_from_config(config_path):
+    """
+       Create agent from pre-defined config
+    """
     config = json.loads(config_path)
     return MountainCarAgent(**config)
 
-  # Calculate reward given by a observation change
+  def discretise(self, obs):
+    new_obs = [max(min(obs[i], self.upper_bounds[i]), self.lower_bounds[i]) for i in range(len(obs))]
+    range_bounds = [self.upper_bounds[i] - self.lower_bounds[i] for i in range(len(self.lower_bounds))]
+    res = tuple([int(round((new_obs[i] - self.lower_bounds[i]) / range_bounds[i] 
+                 * (self.bins[i] - 1))) for i in range(len(new_obs))])
+    return res  
+
   def calculate_reward(self, prev_obs, curr_obs):
-    return 0
+    """
+      Calculate reward given by a observation change
+    """
+    return abs(curr_obs[1]) * 10 - self.env.observation_space.high[0] + curr_obs[1]
 
   @staticmethod
   def test(agent):
