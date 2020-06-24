@@ -85,7 +85,7 @@ class GenericAgent(ABC):
         curr_state = next_state
         moves += 1
       self.performance.append(moves) 
-      print("Episode {} finished after {} moves".format(episode, moves))
+      print("Episode {} finished after {} moves \r".format(episode, moves), end="")
     self.env.close()  
 
   @staticmethod
