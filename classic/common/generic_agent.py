@@ -4,7 +4,8 @@ import numpy as np
 from abc import ABC, abstractmethod 
 
 class GenericAgent(ABC):
-
+  _ENV = '' 
+ 
   def __init__(self, alpha, gamma, epsilon, min_epsilon, bins, upper_bounds, 
                lower_bounds, num_episodes, graphics):
     # Hyperparam
@@ -17,33 +18,35 @@ class GenericAgent(ABC):
     self.upper_bounds = upper_bounds
     self.lower_bounds = lower_bounds
     self.num_episodes = num_episodes
-    self.bins = bins
-    self.qtable = np.zeros(bins, dtype=np.float64)
     
     # Environment
     self.graphics = graphics
-    self.env = gym.make('MountainCar-v0')
+    self.env = gym.make(self._ENV)
+    self.bins = bins + (self.env.action_space.n, )
+    self.qtable = np.zeros(self.bins, dtype=np.float64)
     self.performance = []
+    self.moves = 0
 
+  @staticmethod
   @abstractmethod
   def create_agent_from_config(config_path):
     pass
 
   @abstractmethod
-  def discretise(self, obs):
+  def discretise(self, prev_obs, next_obs):
     pass 
 
-  def get_epsilon(self, moves):
+  def get_epsilon(self):
     """
       Calculate epsilon after decay based on number of moves made
     """
-    return min(self.min_epsilon, self.epsilon ** moves)
+    return max(self.min_epsilon, self.epsilon ** self.moves)
   
-  def get_action(self, state, moves):
+  def get_action(self, state):
     """
       Choose an action given the state of the cartpole and the number of moves made 
     """
-    if (random.uniform(0, 1) < self.get_epsilon(moves)): 
+    if (random.uniform(0, 1) < self.get_epsilon()): 
       action = self.env.action_space.sample()
     else:
       action = np.argmax(self.qtable[state])
@@ -67,28 +70,64 @@ class GenericAgent(ABC):
       Start the training process 
     """
     for episode in range(self.num_episodes):
-      curr_obs = self.env.reset()
-      curr_state = self.discretise(curr_obs)
+      prev_obs = next_obs = self.env.reset()
+      curr_state = self.discretise(prev_obs, next_obs)
       # Start game
       done = False
-      moves = 1
+      self.moves = 0
       while not done:
         if (self.graphics):
           self.env.render()
-        action = self.get_action(curr_state, moves)
-        next_obs, _, done, _ = self.env.step(action)
-        next_state = self.discretise(next_obs)
-        reward = self.calculate_reward(curr_obs, next_obs)
+        action = self.get_action(curr_state)
+        curr_obs, _, done, _ = self.env.step(action)
+        next_state = self.discretise(prev_obs, curr_obs)
+        reward = self.calculate_reward(prev_obs, curr_obs)
         self.update_score(curr_state, next_state, action, reward)
         
-        curr_obs = next_obs 
+        prev_obs = curr_obs 
         curr_state = next_state
-        moves += 1
-      self.performance.append(moves) 
-      print("Episode {} finished after {} moves".format(episode, moves))
+        self.moves += 1
+      self.performance.append(self.moves) 
+      print("Episode {} finished after {} moves".format(episode, self.moves))
     self.env.close()  
 
   @staticmethod
-  @abstractmethod 
   def test(agent):
-    pass
+  # Test the agent 
+    test_results = []
+    env = gym.make(agent._ENV)
+    for t in range(100):
+      prev_obs = curr_obs = env.reset()
+      done = False
+      agent.moves = 1
+      while not done:
+        action = agent.get_action(agent.discretise(prev_obs, curr_obs))
+        prev_obs = curr_obs
+        curr_obs, _, done, _ = env.step(action)
+        agent.moves += 1
+      test_results.append(agent.moves)  
+    return test_results
+
+class HyperParamTuner():
+  """
+    hyper_[upper/lower] = "alpha, gamma, epsilon"
+  """
+  def __init__(self, hyper_lower, hyper_upper, bins_lower, bins_upper,
+               min_epsilon, upper_bounds, num_episodes, graphics, classname):
+    self.hyper_lower = hyper_lower
+    self.hyper_upper = hyper_upper
+    self.bins_lower = bins_lower
+    self.bins_upper = bins_upper
+    self.min_epsilon = min_epsilon
+    self.lower_bounds = lower_bounds
+    self.upper_bounds = upper_bounds
+    self.num_epsiodes = num_episodes
+    self.graphics = graphics
+    self.classname = classname
+
+
+  def run(self):
+    pass 
+
+
+
