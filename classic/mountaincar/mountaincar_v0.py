@@ -19,7 +19,7 @@ class MountainCarAgent(GenericAgent):
   _ENV = 'MountainCar-v0'
   
   def __init__(self, alpha=0.1, gamma=1, epsilon=0.7, min_epsilon=0.1,                 #Hyperparam
-               bins=(16, 4), upper_bounds=[0.6, 0.07], lower_bounds=[-1.2, -0.07], #Discretisation
+               bins=(16, 12, 3), upper_bounds=[0.6, 0.07], lower_bounds=[-1.2, -0.07], #Discretisation
                num_episodes=200, graphics=True):                                       #Training
     GenericAgent.__init__(self, alpha, gamma, epsilon, min_epsilon, bins, 
                          upper_bounds, lower_bounds, num_episodes, graphics)
@@ -45,7 +45,7 @@ class MountainCarAgent(GenericAgent):
     distance_from_flag = self.env.observation_space.high[0] - curr_obs[0]
     distance_from_wall = curr_obs[0] - self.env.observation_space.low[0] 
     beta = self.moves / 200
-    reward = (1 - beta) * 35 * abs(curr_obs[1]) - 0.8 * beta * distance_from_flag 
+    reward = (1 - beta) * 36 * abs(curr_obs[1]) - 0.8 * (beta ** 1.05) * distance_from_flag + curr_obs[0]  * beta / 1000 
 
     if (curr_obs[0] >= 0.5):
       reward += 20 - self.moves / 20

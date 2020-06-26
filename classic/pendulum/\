@@ -17,18 +17,18 @@ class GenericAgent(ABC):
     # Environment
     self.graphics = graphics
     self.env = gym.make(self._ENV)
-    self.bins = bins
+    self.bins = bins + (self.env.action_space.n, )
     self.qtable = np.zeros(self.bins, dtype=np.float64)
     self.performance = []
     self.moves = 0
 
     # Param 
-    self.upper_bounds = (upper_bounds 
-                         if upper_bounds != None 
-                         else list(self.env.observation_space.high))
-    self.lower_bounds = (lower_bounds
-                         if lower_bounds != None
-                         else list(self.env.observation_space.low)) 
+    self.upper_bounds = upper_bounds 
+                        if upper_bounds != None 
+                        else list(self.env.observation_space.high)
+    self.lower_bounds = lower_bounds
+                        if lower_bounds != None
+                        else list(self.env.observation_space.low)  
     self.num_episodes = num_episodes
     
   @staticmethod

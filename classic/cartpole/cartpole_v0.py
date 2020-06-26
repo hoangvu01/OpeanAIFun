@@ -6,7 +6,7 @@ from classic.common import GenericAgent
 
 class CartpoleAgent(GenericAgent):
   _ENV = 'CartPole-v0'
-  def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.5, bins=(12, 16), 
+  def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.5, bins=(12, 16, 2), 
                upper_bounds=[0.4, 0.5], lower_bounds=[-0.4, -0.5], 
                num_episodes=30, min_epsilon=0.05, graphics=True):
     

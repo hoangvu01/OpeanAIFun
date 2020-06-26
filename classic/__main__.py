@@ -3,6 +3,7 @@ import numpy as np
 
 from classic.cartpole.cartpole_v0 import CartpoleAgent
 from classic.mountaincar.mountaincar_v0 import MountainCarAgent
+from classic.pendulum.pendulum_v0 import PendulumAgent
 
 def cartpole_run():
   agent = CartpoleAgent()
@@ -13,12 +14,22 @@ def cartpole_run():
 
 
 def mountaincar_run():
-  agent = MountainCarAgent()
+  agent = MountainCarAgent() 
   agent.train()
   test_results = MountainCarAgent.test(agent)
+  print(np.average(test_results), np.std(test_results))
+  plt.plot(agent.performance)
+  plt.plot(test_results)
+  
+
+def pendulum_run():
+  agent = PendulumAgent(graphics=True) 
+  agent.train()
+  test_results = MountainCarAgent.test(agent)
+  print(np.average(test_results), np.std(test_results))
   plt.plot(agent.performance)
   plt.plot(test_results)
 
 if __name__ == '__main__':
-  mountaincar_run()
+  pendulum_run()
   plt.show()
