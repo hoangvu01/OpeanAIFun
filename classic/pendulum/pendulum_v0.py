@@ -18,7 +18,7 @@ class PendulumAgent(GenericAgent):
   _ENV = 'Pendulum-v0'
   
   def __init__(self, alpha=0.1, gamma=1, epsilon=0.7, min_epsilon=0.1,                 
-               bins=(8, 8, 8, 8), upper_bounds=(1, 1, 8, 2), lower_bounds=(-1, -1, -8 , -2),
+               bins=(16, 16, 16, 16), upper_bounds=(1, 1, 8, 2), lower_bounds=(-1, -1, -8 , -2),
                num_episodes=200, graphics=True):                        
     GenericAgent.__init__(self, alpha, gamma, epsilon, min_epsilon, bins, 
                          upper_bounds, lower_bounds, num_episodes, graphics)
@@ -57,9 +57,10 @@ class PendulumAgent(GenericAgent):
     new_score = (1 - self.alpha) * old_score + self.alpha * (reward + self.gamma * next_max)
     self.qtable[curr_state][denormalised_action] = new_score
   
-  def calculate_reward(self, prev_obs, curr_obs):
+  def calculate_reward(self, prev_obs, curr_obs, env_reward):
     """
       Calculate reward given by a observation change
     """
-    
-    return -curr_obs[2] - curr_obs[0] * 8
+    acceleration = curr_obs[2] - prev_obs[2]
+    reward = curr_obs[0] * 7 - abs(curr_obs[2])
+    return env_reward + reward

@@ -21,6 +21,7 @@ class GenericAgent(ABC):
     self.qtable = np.zeros(self.bins, dtype=np.float64)
     self.performance = []
     self.moves = 0
+    self.env_reward = 0
 
     # Param 
     self.upper_bounds = (upper_bounds 
@@ -66,7 +67,7 @@ class GenericAgent(ABC):
     self.qtable[curr_state][action] = new_score
  
   @abstractmethod
-  def calculate_reward(self, prev_obs, next_obs):
+  def calculate_reward(self, prev_obs, next_obs, env_reward):
     pass
   
   def train(self):
@@ -83,16 +84,17 @@ class GenericAgent(ABC):
         if (self.graphics):
           self.env.render()
         action = self.get_action(curr_state)
-        curr_obs, _, done, _ = self.env.step(action)
+        curr_obs, env_reward, done, _ = self.env.step(action)
+        self.env_reward += env_reward
         next_state = self.discretise(prev_obs, curr_obs)
-        reward = self.calculate_reward(prev_obs, curr_obs)
+        reward = self.calculate_reward(prev_obs, curr_obs, env_reward)
         self.update_score(curr_state, next_state, action, reward)
         
         prev_obs = curr_obs 
         curr_state = next_state
         self.moves += 1
-      self.performance.append(self.moves) 
-      print("Episode {} finished after {} moves".format(episode, self.moves))
+      self.performance.append(self.env_reward) 
+      print("Episode {} finished, env_reward {} ".format(episode, self.env_reward))
     self.env.close()  
 
   @staticmethod
