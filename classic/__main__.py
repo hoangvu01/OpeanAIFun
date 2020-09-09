@@ -5,6 +5,8 @@ from classic.cartpole.cartpole_v0 import CartpoleAgent
 from classic.mountaincar.mountaincar_v0 import MountainCarAgent
 from classic.pendulum.pendulum_v0 import PendulumAgent
 
+from classic.common.generic_agent import HyperParamTuner
+
 def cartpole_run():
   agent = CartpoleAgent()
   agent.train()
@@ -31,5 +33,5 @@ def pendulum_run():
   plt.plot(test_results)
 
 if __name__ == '__main__':
-  pendulum_run()
-  plt.show()
+  tuner = HyperParamTuner(PendulumAgent)
+  tuner.run()

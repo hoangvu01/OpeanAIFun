@@ -18,10 +18,11 @@ class PendulumAgent(GenericAgent):
   _ENV = 'Pendulum-v0'
   
   def __init__(self, alpha=0.1, gamma=1, epsilon=0.7, min_epsilon=0.1,                 
-               bins=(16, 16, 16, 16), upper_bounds=(1, 1, 8, 2), lower_bounds=(-1, -1, -8 , -2),
+               bins=(2, 2, 4, 4), upper_bounds=(1, 1, 8, 2), lower_bounds=(-1, -1, -8 , -2),
                num_episodes=200, graphics=True):                        
     GenericAgent.__init__(self, alpha, gamma, epsilon, min_epsilon, bins, 
                          upper_bounds, lower_bounds, num_episodes, graphics)
+     
 
   def create_agent_from_config(config_path):
     """
@@ -62,5 +63,5 @@ class PendulumAgent(GenericAgent):
       Calculate reward given by a observation change
     """
     acceleration = curr_obs[2] - prev_obs[2]
-    reward = curr_obs[0] * 7 - abs(curr_obs[2])
-    return env_reward + reward
+    reward = curr_obs[0] * 10 - abs(curr_obs[2]) * 2 
+    return reward

@@ -1,3 +1,4 @@
+import itertools
 import random, gym
 import numpy as np
 
@@ -80,6 +81,7 @@ class GenericAgent(ABC):
       # Start game
       done = False
       self.moves = 0
+      self.env_reward = 0
       while not done:
         if (self.graphics):
           self.env.render()
@@ -88,13 +90,14 @@ class GenericAgent(ABC):
         self.env_reward += env_reward
         next_state = self.discretise(prev_obs, curr_obs)
         reward = self.calculate_reward(prev_obs, curr_obs, env_reward)
+        self.env_reward += env_reward
         self.update_score(curr_state, next_state, action, reward)
         
         prev_obs = curr_obs 
         curr_state = next_state
         self.moves += 1
       self.performance.append(self.env_reward) 
-      print("Episode {} finished, env_reward {} ".format(episode, self.env_reward))
+      print("Episode {} finished, env_reward {} \r".format(episode, self.env_reward), end='')
     self.env.close()  
 
   @staticmethod
@@ -106,34 +109,40 @@ class GenericAgent(ABC):
       prev_obs = curr_obs = env.reset()
       done = False
       agent.moves = 1
+      agent.env_reward = 0
       while not done:
         action = agent.get_action(agent.discretise(prev_obs, curr_obs))
         prev_obs = curr_obs
-        curr_obs, _, done, _ = env.step(action)
+        curr_obs, env_reward, done, _ = env.step(action)
+        agent.env_reward += env_reward
         agent.moves += 1
-      test_results.append(agent.moves)  
+      test_results.append(agent.env_reward)  
     return test_results
 
 class HyperParamTuner():
   """
     hyper_[upper/lower] = "alpha, gamma, epsilon"
   """
-  def __init__(self, hyper_lower, hyper_upper, bins_lower, bins_upper,
-               min_epsilon, upper_bounds, num_episodes, graphics, classname):
-    self.hyper_lower = hyper_lower
-    self.hyper_upper = hyper_upper
-    self.bins_lower = bins_lower
-    self.bins_upper = bins_upper
-    self.min_epsilon = min_epsilon
-    self.lower_bounds = lower_bounds
-    self.upper_bounds = upper_bounds
-    self.num_epsiodes = num_episodes
-    self.graphics = graphics
+  def __init__(self, classname):
     self.classname = classname
 
 
   def run(self):
-    pass 
+    params = itertools.product(np.linspace(0, 1, 11), repeat=3) 
+    performance = np.zeros((11, 11, 11), dtype=np.float64)
+    for param in params:
+      agent = self.classname(alpha=param[0], gamma=param[1], epsilon=param[2], graphics=False)
+      agent.train()
+      test_res = self.classname.test(agent)
+      test_avg = np.average(np.array(test_res))
+      test_std = np.std(np.array(test_res))
+      print('=======================================================================')
+      print("Alpha: {}, Gamma: {}, Epsilon: {}".format(param[0], param[1], param[2]))
+      print("Avergage: {}, Standard Deviation: {}".format(test_avg, test_std))
+      print('=======================================================================')
+      indices = tuple(map(lambda x: int(x * 10), param))
+      performance[indices] = test_avg
+      np.save("testfile.txt", performance)
+      print("Best params: {}".format(np.argmax(performance)))
 
-
-
+ 
